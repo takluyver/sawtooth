@@ -10,7 +10,17 @@ on:
 
 jobs:
   validation:
-    uses: microsoft/action-python/.github/workflows/validation.yml@0.2.0
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tools: ['black', 'bandit', 'pylint', 'pyright', 'flake8', 'pytest']
+    steps:
+      - uses: actions/checkout@v2
+      - name: ${{ matrix.tools }}
+        uses: dciborow/pyaction@0.0.30
+        with:
+          ${{ matrix.tools }}: true
+          args: ${{ matrix.args }}
 
   publish:
     uses: microsoft/action-python/.github/workflows/publish.yml@0.2.0
