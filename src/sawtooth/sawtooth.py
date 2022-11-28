@@ -37,13 +37,17 @@ class Sawtooth(Generic[ResourceType]):
     _concurrency: int
     _waiters: deque = deque()
 
-    def __init__(self, resource: Any, config: SawtoothConfig = SawtoothConfig()):
+    def __init__(
+        self, resource: Any, config: SawtoothConfig = SawtoothConfig()
+    ):
         self._resource = resource
         self.config = config
         starting_concurrency = (
             config.starting_concurrency
             if config.starting_concurrency is not None
-            else math.floor((config.max_concurrency - config.min_concurrency) / 2)
+            else math.floor(
+                (config.max_concurrency - config.min_concurrency) / 2
+            )
         )
         if (
             starting_concurrency > config.max_concurrency
@@ -57,10 +61,17 @@ class Sawtooth(Generic[ResourceType]):
             raise ValueError("Minimum concurrency needs to be greater than 0")
 
         if config.min_concurrency >= config.max_concurrency:
-            raise ValueError("Minimum concurrency needs greater than maximum concurrency")
+            raise ValueError(
+                "Minimum concurrency needs greater than maximum concurrency"
+            )
 
-        if self.config.backoff_factor >= 1.0 or self.config.backoff_factor <= 0.0:
-            raise ValueError("Backoff must have a value between 0 and 1 (exclusive)")
+        if (
+            self.config.backoff_factor >= 1.0
+            or self.config.backoff_factor <= 0.0
+        ):
+            raise ValueError(
+                "Backoff must have a value between 0 and 1 (exclusive)"
+            )
 
         self._concurrency = starting_concurrency
         self._sshthresh = config.max_concurrency
@@ -96,7 +107,9 @@ class Sawtooth(Generic[ResourceType]):
                 ),
             )
         )
-        self._concurrency = math.ceil(min(new_concurrency, self.config.max_concurrency))
+        self._concurrency = math.ceil(
+            min(new_concurrency, self.config.max_concurrency)
+        )
 
     def _maybe_reduce_concurrency(self):
         """Reduce our concurrency if we haven't hit the min"""
@@ -111,7 +124,7 @@ class Sawtooth(Generic[ResourceType]):
 
     async def acquire(self, request_id: str):
         """
-        Acquire the resource. We will be added to waiters if we are currently at 
+        Acquire the resource. We will be added to waiters if we are currently at
         max concurrency. The request ID should be unique across calls to acquire.
         The same request_id must be passed to *release* when done with the resource.
 
@@ -128,7 +141,7 @@ class Sawtooth(Generic[ResourceType]):
     def release(self, request_id: str, backpressure: bool = False):
         """
         Release the resource previously acquired with request_id. If `backpressure`
-        is `False` we will attempt to increase the concurrency, otherwise we will 
+        is `False` we will attempt to increase the concurrency, otherwise we will
         attempt to reduce it.
 
         :param request_id: request id
@@ -156,7 +169,7 @@ class Sawtooth(Generic[ResourceType]):
         >>>     raise SawtoothBackpressure()
         >>>
 
-        The resource will be automatically released when exiting the context. A 
+        The resource will be automatically released when exiting the context. A
         `SawtoothBackpressure` error should be raised to indicate backpressure.
         """
 
