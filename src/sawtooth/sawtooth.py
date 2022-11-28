@@ -31,11 +31,11 @@ class SawtoothConfig:
 class Sawtooth(Generic[ResourceType]):
     config: SawtoothConfig
     _resource: ResourceType
-    _flying: Set[str] = set()
-    _ignored: Set[str] = set()
+    _flying: Set[str]
+    _ignored: Set[str]
     _sshthresh: int
     _concurrency: int
-    _waiters: deque = deque()
+    _waiters: deque
 
     def __init__(self, resource: Any, config: SawtoothConfig = SawtoothConfig()):
         self._resource = resource
@@ -61,6 +61,10 @@ class Sawtooth(Generic[ResourceType]):
 
         if self.config.backoff_factor >= 1.0 or self.config.backoff_factor <= 0.0:
             raise ValueError("Backoff must have a value between 0 and 1 (exclusive)")
+
+        self._flying = set()
+        self._ignored = set()
+        self._waiters = deque()
 
         self._concurrency = starting_concurrency
         self._sshthresh = config.max_concurrency
