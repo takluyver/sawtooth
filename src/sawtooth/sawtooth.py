@@ -20,7 +20,7 @@ class SawtoothConfig:
     # The minimum value we can reduce concurrency to
     min_concurrency: int = 1
     # The amount to increase concurrency by on a successful response
-    step_size = 1
+    step_size: int = 1
     # Reduce concurrency to concurrency * backoff_factor upon receiving
     # backpressure
     backoff_factor: float = 0.95
