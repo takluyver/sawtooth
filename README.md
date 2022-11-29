@@ -1,91 +1,56 @@
-# Python Project Template
+# Sawtooth 🪚
 
-This project follows the Python Standards declared in [PEP 621](https://peps.python.org/pep-0621/).
-This uses a pyproject.yaml to configuration the project. In this example, [flit](https://pypi.org/project/flit/) is used to simplify the build process, and publish to pypi.
+Sawtooth is a utility for congestion control using additive increase and multiplicative backoff. The algorithm is based on [this blog post](https://www.aeoncase.com/blog/posts/improve-on-exponential-backoff/).
 
-## Project Organization
+![Sawtooth graph](sawtooth.png)
 
-- .devcontainer - This directory contains required files for creating a [Codespace](https://github.com/features/codespaces).
-- .github
-  - workflows - Contains GitHub Actions used for building, testing and publishing.
-    - publish-test.yml - Publish wheels to [https://test.pypi.org/](https://test.pypi.org/)
-    - publish.yml - Publish wheels to [https://pypi.org/](https://pypi.org/)
-    - pull-request.yml - Build and Test pull requests before commiting to main.
-    - template-sync.yml - Update GitHub Repo with enhancments to base template
-- docs - collect documents (default format .md)
-- src - place new source code here
-  - python_package - sample package (this can be deleted when creating a new repository)
-- tests - contains Python based test cases to validation src code
-- .pre-commit-config.yaml - Contains various pre-check fixes for Python
-- .templateversionrc - used to track template version usage.
-- MANIFEST.in - Declares additional files to include in Python whl
-- pyproject.toml - Python Project Declaration
-- ws.code-workspace - Recommended configurations for [Visual Studio Code](https://code.visualstudio.com/)
+## Getting started
 
-## pyproject.toml
+```
+pip install sawtooth
+```
 
-The following sections are defined in the configuration toml.
+### Basic usage
 
-- build-system
-- project
-  - optional-dependencies
-  - urls
-- tool
-  - bandit
-  - coverage
-    - run
-    - report
-  - pyright
-  - pytest
-  - tox
-  - pylint
-    - MESSAGES CONTROL
-    - REPORTS
-    - REFACTORING
-    - BASIC
-    - FORMAT
-    - LOGGING
-    - MISCELLANEOUS
-    - SIMILARITIES
-    - SPELLING
-    - STRING
-    - TYPECHECK
-    - VARIABLES
-    - CLASSES
-    - DESIGN
-    - IMPORTS
-    - EXCEPTIONS
+```python
+from sawtooth import Sawtooth, SawtoothBackpressure
+import asyncio
+from aiohttp import ClientSession 
+from aiohttp.web_exceptions import HTTPTooManyRequests
 
-### build-system
-TODO: add info on flit configuration
+async def main():
+    session = ClientSession()
+    sawtooth = Sawtooth(session)
 
-### project
-This section defines the project metadata, which may have been previously contained in a setup.py file.
+    with open('urls.txt') as f:
+        urls = f.readlines()
+    
+    async def get_url(url: str):
+        async with sawtooth.resource() as s:
+            res = await s.get(url)
+            # Raise backpressure on 429
+            if res.status == HTTPTooManyRequests.status_code:
+                raise SawtoothBackpressure()
 
-#### optional-dependencies
-This are otpimal dependancey groups that can be installed via 'pip install .[tests]'.
-One group is included for dependancies required for testing. A second group is included for PySpark based dependancies.
+    await asyncio.gather(*[get_url(url) for url in urls])
 
-### tool
-This section defines the configurations for additional tools used to format, lint, type-check, and analysis Python code.
+    await session.close()
+```
 
-#### bandit
-Performs Security Static Analysis checks on code base.
+## Configuration
 
-#### black
-Auto-formats code
+A `Sawtooth` instance can be configured by passing an instance of `SawtoothConfig` as its second parameter.
 
-#### coverage
-Configures code coverage reports generatated during testing.
+```python
+sawtooth = Sawtooth(resource, SawtoothConfig(max_concurrency=100, min_concurrency=50))
+```
 
-#### pyright
-Performs static type checking on Python.
+The following options are available:
 
-#### pytest
-Configures various test markers used during testing.
-
-#### pylint
-Performs Linting and Static Analysis. Any modifictions made by the auto-formater (black) are always considered correct.
-
-## Publish to PyPi from GitHub
-In order to publish to PyPi, a repostirory secret must be created, "PYPI_PASSWORD". In order to publish to the Test PyPi, a second secret must be added, "TEST_PYPI_PASSWORD". 
+| Name                         | Description                                                                                                                           |    Default    |
+| -------------                | -------------                                                                                                                         | ------------- |
+| *max_concurrency*            | The maximum value we can increase concurrency to                                                                                      |   **1000**    |
+| *min_concurrency*            | The minimum value we can reduce concurrency to                                                                                        |     **1**     |
+| *step_size*                  | The amount to increase concurrency by on a successful response                                                                        |     **1**     |
+| *backoff_factor*             | Reduce concurrency to `concurrency * backoff_factor` upon receiving backpressure                                                     |   **0.95**    |
+| *starting_concurrency*       | Starting concurrency.                                                             |   **(max_concurrency - min_concurrency) / 2**    |
