@@ -25,7 +25,7 @@ dynamic = ["version"]
 [project.optional-dependencies]
 test = [
     "bandit[toml]==1.7.4",
-    "black==22.*",
+    "black>=22,<24",
     "check-manifest==0.48",
     "flake8-bugbear==22.10.27",
     "flake8-docstrings",
